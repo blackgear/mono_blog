@@ -1,0 +1,15 @@
+[package]
+name = "Mono_Blog"
+version = "0.1.0"
+authors = ["Daniel <daniel65536@gmail.com>"]
+
+[dependencies]
+pulldown-cmark = { version = "0.1.0", default-features = false }
+horrorshow = "0.6.2"
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+lto = true
+panic = 'abort'
