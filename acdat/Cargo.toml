@@ -1,16 +1,22 @@
 [package]
-name = "mblog"
+name = "acdat"
 version = "0.1.0"
 authors = ["Daniel <daniel65536@gmail.com>"]
 
 [dependencies]
-pulldown-cmark = { version = "0.1", default-features = false }
-fomat-macros = "0.2"
+fnv = "1.0"
+nom = "3.2"
+rand = "0.4"
+rayon = "0.9"
+
+[dev-dependencies]
+hyphenation = "0.6"
 
 [profile.release]
 opt-level = 3
 debug = false
-debug-assertions = false
+rpath = false
 lto = true
-panic = "abort"
+debug-assertions = false
 codegen-units = 4
+panic = 'abort'
