@@ -1,10 +1,11 @@
+use std::cmp::Ordering;
 use std::path::PathBuf;
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 use std::collections::{BinaryHeap, HashSet};
-use std::cmp::Ordering;
+use rayon::prelude::*;
+use rayon::scope;
 use parser::{Blog, Post};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 const PAGESIZE: usize = 7;
 const DESTROOT: &str = "public";
@@ -42,16 +43,18 @@ impl Site {
 
     pub fn render(&self) {
         timer!("Render");
-        self.render_post();
-        self.render_menu();
-        self.render_main();
-        self.render_feed();
-        self.render_misc();
-        self.render_data();
+        scope(|s| {
+            s.spawn(|_| self.render_post());
+            s.spawn(|_| self.render_menu());
+            s.spawn(|_| self.render_main());
+            s.spawn(|_| self.render_feed());
+            s.spawn(|_| self.render_site());
+            s.spawn(|_| self.render_misc());
+        })
     }
 
     fn render_post(&self) {
-        for post in self.blog.iter() {
+        self.blog.par_iter().for_each(|post| {
             let path = [DESTROOT, &post.category, &post.pagename, "index.html"]
                 .iter()
                 .collect();
@@ -59,7 +62,7 @@ impl Site {
             wite!(
                 w,
                 "<!DOCTYPE html>\n"
-                "<html lang=\"cmn-Hans\" manifest=\"/mono.appcache\">\n"
+                "<html lang=\"cmn-Hans\">\n"
                 "<head>\n"
                 "<meta charset=\"UTF-8\">\n"
                 "<title>"(post.title)"</title>\n"
@@ -90,18 +93,23 @@ impl Site {
                 "</body>\n"
                 "</html>\n"
             ).unwrap();
-        }
+        })
     }
 
     fn render_menu(&self) {
-        let categories: HashSet<&String> = self.blog.iter().map(|x| &x.category).collect();
-        for category in categories {
+        let categories: HashSet<&str> = self.blog
+            .iter()
+            .filter(|x| !x.category.is_empty())
+            .map(|x| x.category.as_ref())
+            .collect();
+
+        categories.into_par_iter().for_each(|category| {
             let path = [DESTROOT, category, "index.html"].iter().collect();
             let mut w = create(path);
             wite!(
                 w,
                 "<!DOCTYPE html>\n"
-                "<html lang=\"cmn-Hans\" manifest=\"/mono.appcache\">\n"
+                "<html lang=\"cmn-Hans\">\n"
                 "<head>\n"
                 "<meta charset=\"UTF-8\">\n"
                 "<title>DarkNode</title>\n"
@@ -117,7 +125,7 @@ impl Site {
                 "</header>\n"
                 "<article>\n"
                 "<nav>分类 - "(category)"</nav>"
-                for post in self.blog.iter().filter(|x| &x.category == category) {
+                for post in self.blog.iter().filter(|x| x.category == category) {
                     "<section>\n"
                     "<a href=\"/"(post.category)"/"(post.pagename)"/\">"
                     "<h1>"(post.title)"</h1><time datetime=\""(post.released)"\">"(&post.released[0..10])"</time>"
@@ -132,7 +140,7 @@ impl Site {
                 "</body>\n"
                 "</html>\n"
             ).unwrap();
-        }
+        })
     }
 
     fn render_main(&self) {
@@ -140,7 +148,8 @@ impl Site {
             .iter()
             .filter(|post| !post.category.is_empty())
             .count();
-        for pid in 1..size / PAGESIZE + 2 {
+
+        (1..size / PAGESIZE + 2).into_par_iter().for_each(|pid| {
             let path = if pid == 1 {
                 [DESTROOT, "index.html"].iter().collect()
             } else {
@@ -152,7 +161,7 @@ impl Site {
             wite!(
                 w,
                 "<!DOCTYPE html>\n"
-                "<html lang=\"cmn-Hans\" manifest=\"/mono.appcache\">\n"
+                "<html lang=\"cmn-Hans\">\n"
                 "<head>\n"
                 "<meta charset=\"UTF-8\">\n"
                 "<title>DarkNode</title>\n"
@@ -197,7 +206,7 @@ impl Site {
                 "</body>\n"
                 "</html>\n"
             ).unwrap();
-        }
+        })
     }
 
     fn render_feed(&self) {
@@ -210,7 +219,6 @@ impl Site {
             "<title>DarkNode</title>\n"
             "<subtitle>Life, the Universe and Everything</subtitle>\n"
             "<link href=\"/atom.xml\" rel=\"self\"/>\n"
-            "<link href=\"https://darknode.superfeedr.com\" rel=\"hub\"/>\n"
             "<link href=\"https://darknode.in/\"/>\n"
             "<updated>"(posts.peek().map_or("", |post| &post.modified))"</updated>\n"
             "<id>https://darknode.in/</id>\n"
@@ -237,19 +245,7 @@ impl Site {
         ).unwrap();
     }
 
-    fn render_misc(&self) {
-        let path = [DESTROOT, "mono.appcache"].iter().collect();
-        let mut w = create(path);
-        wite!(
-            w,
-            "CACHE MANIFEST\n"
-            "#"{(SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs()):x}"\n"
-            "mono.css\n"
-            "favicon.png\n"
-            "NETWORK:\n"
-            "*\n"
-        ).unwrap();
-
+    fn render_site(&self) {
         let path = [DESTROOT, "robots.txt"].iter().collect();
         let mut w = create(path);
         wite!(
@@ -299,7 +295,7 @@ impl Site {
             ).unwrap();
     }
 
-    fn render_data(&self) {
+    fn render_misc(&self) {
         let path = [DESTROOT, "mono.css"].iter().collect();
         let mut w = create(path);
         w.write(include_bytes!("mono.css")).unwrap();

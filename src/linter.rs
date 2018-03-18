@@ -1,22 +1,19 @@
-use std::borrow::Cow;
 use std::cmp::max;
+use std::borrow::Cow;
 
 static DFA: [u16; 33840] = include!("EN_dfa.in");
 static RAW: [u8; 1964] = include!("EN_raw.in");
 
-// WARNING: Only ([A-Za-z]*) is allowed as content, or hyphen<'a> WILL NOT halt.
 fn detect(content: &str) -> Vec<u8> {
     let mut result: Vec<u8> = vec![0; content.len() + 1];
     let mut cursor: usize = 184;
     let content = content
         .as_bytes()
         .iter()
-        .map(|&x| {
-            if x < 0x61 {
-                (x as usize + 32) << 2
-            } else {
-                (x as usize) << 2
-            }
+        .map(|&x| match x {
+            0x41...0x5A => (x as usize + 32) << 2,
+            0x61...0x7A => (x as usize) << 2,
+            _ => unreachable!(),
         })
         .chain([184].iter().cloned())
         .enumerate();
@@ -44,34 +41,34 @@ fn detect(content: &str) -> Vec<u8> {
     result
 }
 
-// WARNING: Only ([A-Za-z]*) is allowed as content, or hyphen<'a> WILL NOT halt.
 fn hyphen<'a>(content: &'a str, result: &mut String) {
     let length = content.len();
     if length < 5 {
         return result.push_str(content);
     }
-    let points = match content {
-        "associate" => vec![0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-        "associates" => vec![0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
-        "declination" => vec![0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
-        "obligatory" => vec![0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0],
-        "philanthropic" => vec![0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-        "present" => vec![0, 0, 0, 0, 0, 0, 0, 0],
-        "presents" => vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "project" => vec![0, 0, 0, 0, 0, 0, 0, 0],
-        "projects" => vec![0, 0, 0, 0, 0, 0, 0, 0, 0],
-        "reciprocity" => vec![0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
-        "recognizance" => vec![0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0],
-        "reformation" => vec![0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
-        "retribution" => vec![0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0],
-        "table" => vec![0, 0, 1, 0, 0, 0],
-        _ => detect(content),
-    };
-
-    for (i, chr) in content.chars().enumerate() {
-        result.push(chr);
-        if i > 0 && i < length - 3 && points[i + 1] & 1 != 0 {
-            result.push('\u{00AD}')
+    match content {
+        "associate" => result.push_str("as\u{00AD}so\u{00AD}ciate"),
+        "associates" => result.push_str("as\u{00AD}so\u{00AD}ciates"),
+        "declination" => result.push_str("dec\u{00AD}li\u{00AD}na\u{00AD}tion"),
+        "obligatory" => result.push_str("oblig\u{00AD}a\u{00AD}tory"),
+        "philanthropic" => result.push_str("phil\u{00AD}an\u{00AD}thropic"),
+        "present" => result.push_str("present"),
+        "presents" => result.push_str("presents"),
+        "project" => result.push_str("project"),
+        "projects" => result.push_str("projects"),
+        "reciprocity" => result.push_str("reci\u{00AD}procity"),
+        "recognizance" => result.push_str("re\u{00AD}cog\u{00AD}ni\u{00AD}zance"),
+        "reformation" => result.push_str("ref\u{00AD}or\u{00AD}ma\u{00AD}tion"),
+        "retribution" => result.push_str("ret\u{00AD}ri\u{00AD}bu\u{00AD}tion"),
+        "table" => result.push_str("ta\u{00AD}ble"),
+        _ => {
+            let points = detect(content);
+            for (i, chr) in content.chars().enumerate() {
+                result.push(chr);
+                if i > 0 && i < length - 3 && points[i + 1] & 1 != 0 {
+                    result.push('\u{00AD}')
+                }
+            }
         }
     }
 }

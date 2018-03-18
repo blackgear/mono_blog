@@ -11,10 +11,10 @@ pub fn detect(content: &str) -> Vec<u8> {
         .as_bytes()
         .iter()
         .map(|&x| {
-            if x < 0x61 {
-                (x as usize + 32) << 2
-            } else {
-                (x as usize) << 2
+            match x {
+                0x41...0x5A => (x as usize + 32) << 2,
+                0x61...0x7A => (x as usize) << 2,
+                _ => unreachable!()
             }
         })
         .chain([184].iter().cloned())

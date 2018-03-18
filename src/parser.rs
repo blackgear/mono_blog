@@ -1,7 +1,7 @@
-use pulldown_cmark::{Alignment, Event, Parser, Tag};
 use std::fmt::Write;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use pulldown_cmark::{Alignment, Event, Parser, Tag};
 use linter::process;
 
 #[derive(Eq, PartialEq)]
@@ -235,7 +235,7 @@ impl<'a> Blog<'a> {
                     self.data.push_str("\" title=\"");
                     self.data.push_str(&process(title));
                 }
-                self.data.push_str("\">");
+                self.data.push_str("\" target=\"_blank\">");
             }
             Tag::Image(dest, title) => {
                 self.data.push_str("<img src=\"");
