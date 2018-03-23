@@ -43,6 +43,9 @@ impl Site {
 
     pub fn render(&self) {
         timer!("Render");
+        if self.blog.len() == 0 {
+            return;
+        };
         scope(|s| {
             s.spawn(|_| self.render_post());
             s.spawn(|_| self.render_menu());

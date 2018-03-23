@@ -1,8 +1,22 @@
+//! Parser for Ulysses exported MarkDown bundle.
+//!
+//! Extract Post from a MarkDown bundle by iterating Blog.
+//!
+//! # Example
+//!
+//! ```
+//! use parser::Blog;
+//! let blog = Blog::from(&data);
+//!
+//! for post in blog {
+//!     println("{}", post.title);
+//! }
+//! ```
 use std::fmt::Write;
 use std::borrow::Cow;
 use std::collections::HashMap;
 use pulldown_cmark::{Alignment, Event, Parser, Tag};
-use linter::process;
+use linter::{process, Scripts};
 
 #[derive(Eq, PartialEq)]
 pub struct Post {
@@ -31,6 +45,8 @@ pub struct Blog<'a> {
     data: String,
 
     reference: HashMap<Cow<'a, str>, usize>,
+    space_state: Scripts,
+    space_buffer: String,
     table_state: TableState,
     table_alignments: Vec<Alignment>,
     table_cell_index: usize,
@@ -58,6 +74,8 @@ impl<'a> Blog<'a> {
             data: String::with_capacity(16384),
 
             reference: HashMap::default(),
+            space_state: Scripts::Unknown,
+            space_buffer: String::with_capacity(64),
             table_state: TableState::Head,
             table_alignments: vec![],
             table_cell_index: 0,
@@ -80,7 +98,8 @@ impl<'a> Blog<'a> {
             match event {
                 Event::Start(Tag::CodeBlock(_)) => header = false,
                 Event::Text(ref text) if header => {
-                    self.title.push_str(&process(text));
+                    process(&mut self.title, text);
+                    // self.title.push_str(&process(text));
                 }
                 Event::Text(ref text) if text.starts_with("本文发表于：") => {
                     self.released
@@ -110,21 +129,25 @@ impl<'a> Blog<'a> {
                 Event::Start(Tag::Header(1)) => break,
                 Event::Start(tag) => self.start_tag(tag),
                 Event::End(tag) => self.end_tag(tag),
-                Event::Text(text) => self.data.push_str(&process(text)),
-                Event::Html(html) | Event::InlineHtml(html) => self.data.push_str(&html),
-                Event::SoftBreak => self.data.push('\n'),
-                Event::HardBreak => self.data.push_str("<br />\n"),
+                Event::Text(text) => self.push_text(&text),
+                Event::Html(html) => self.push_html(&html),
+                Event::InlineHtml(html) => self.push_html(&html),
+                Event::SoftBreak => self.fresh_line(),
+                Event::HardBreak => self.push_html("<br />\n"),
                 Event::FootnoteReference(name) => {
+                    self.fresh_buffer();
                     let len = self.reference.len() + 1;
-                    self.data.push_str("<sup><a href=\"#");
-                    self.data.push_str(&process(&name));
-                    self.data.push_str("\">");
                     let number = self.reference.entry(name).or_insert(len);
-                    write!(&mut self.data, "{}", number).unwrap();
-                    self.data.push_str("</a></sup>");
+                    write!(
+                        self.data,
+                        "<sup><a href=\"#{}\">{}</a></sup>",
+                        number, number
+                    ).unwrap();
+                    self.space_state = Scripts::Unknown;
                 }
             }
         }
+        self.fresh_buffer();
     }
 
     fn parse_text(&mut self) {
@@ -134,23 +157,54 @@ impl<'a> Blog<'a> {
                 Event::Start(_) => nest += 1,
                 Event::End(_) if nest == 0 => break,
                 Event::End(_) => nest -= 1,
-                Event::Text(text) => self.data.push_str(&process(text)),
-                Event::Html(_) => (),
-                Event::InlineHtml(html) => self.data.push_str(&process(html)),
-                Event::SoftBreak | Event::HardBreak => self.data.push(' '),
+                Event::Text(text) => self.push_html(&text),
+                Event::Html(_) | Event::InlineHtml(_) => (),
+                Event::SoftBreak | Event::HardBreak => self.push_html(" "),
                 Event::FootnoteReference(name) => {
+                    self.fresh_buffer();
                     let len = self.reference.len() + 1;
                     let number = self.reference.entry(name).or_insert(len);
-                    write!(&mut self.data, "[{}]", number).unwrap();
+                    write!(self.data, "[{}]", number).unwrap();
+                    self.space_state = Scripts::Unknown;
                 }
             }
         }
     }
 
+    fn fresh_buffer(&mut self) {
+        if !self.space_buffer.is_empty() {
+            self.data.push_str(&self.space_buffer);
+            self.space_buffer.clear();
+        };
+    }
+
     fn fresh_line(&mut self) {
+        self.fresh_buffer();
         if !(self.data.is_empty() || self.data.ends_with('\n')) {
             self.data.push('\n');
         }
+        self.space_state = Scripts::Unknown;
+    }
+
+    fn push_html(&mut self, text: &str) {
+        self.fresh_buffer();
+        self.data.push_str(text);
+        self.space_state = Scripts::Unknown;
+    }
+
+    fn push_text(&mut self, text: &str) {
+        let ws = self.space_state;
+        let ns = text.chars().next().map_or(Scripts::Unknown, |x| x.into());
+
+        if (ws == Scripts::Chinese && ns != Scripts::Unknown)
+            || (ns == Scripts::Chinese && ws != Scripts::Unknown) && ws != ns
+        {
+            self.data.push('\u{2009}');
+        };
+
+        self.fresh_buffer();
+        process(&mut self.data, text);
+        self.space_state = text.chars().last().map_or(Scripts::Unknown, |x| x.into());
     }
 
     fn start_tag(&mut self, tag: Tag<'a>) {
@@ -170,29 +224,30 @@ impl<'a> Blog<'a> {
                 self.data.push('>');
             }
             Tag::Table(alignments) => {
+                self.fresh_line();
                 self.table_alignments = alignments;
                 self.data.push_str("<table>");
             }
             Tag::TableHead => {
                 self.table_state = TableState::Head;
-                self.data.push_str("<thead><tr>");
+                self.space_buffer.push_str("<thead><tr>");
             }
             Tag::TableRow => {
                 self.table_cell_index = 0;
-                self.data.push_str("<tr>");
+                self.space_buffer.push_str("<tr>");
             }
             Tag::TableCell => {
                 match self.table_state {
-                    TableState::Head => self.data.push_str("<th"),
-                    TableState::Body => self.data.push_str("<td"),
+                    TableState::Head => self.space_buffer.push_str("<th"),
+                    TableState::Body => self.space_buffer.push_str("<td"),
                 }
                 match self.table_alignments.get(self.table_cell_index) {
-                    Some(&Alignment::Left) => self.data.push_str(" align=\"left\""),
-                    Some(&Alignment::Center) => self.data.push_str(" align=\"center\""),
-                    Some(&Alignment::Right) => self.data.push_str(" align=\"right\""),
+                    Some(&Alignment::Left) => self.space_buffer.push_str(" align=\"left\""),
+                    Some(&Alignment::Center) => self.space_buffer.push_str(" align=\"center\""),
+                    Some(&Alignment::Right) => self.space_buffer.push_str(" align=\"right\""),
                     _ => (),
                 }
-                self.data.push_str(">");
+                self.space_buffer.push_str(">");
             }
             Tag::BlockQuote => {
                 self.fresh_line();
@@ -205,7 +260,7 @@ impl<'a> Blog<'a> {
                     self.data.push_str("<pre><code>");
                 } else {
                     self.data.push_str("<pre><code class=\"language-");
-                    self.data.push_str(&process(lang));
+                    process(&mut self.data, lang);
                     self.data.push_str("\">");
                 }
             }
@@ -225,43 +280,41 @@ impl<'a> Blog<'a> {
                 self.fresh_line();
                 self.data.push_str("<li>");
             }
-            Tag::Emphasis => self.data.push_str("<em>"),
-            Tag::Strong => self.data.push_str("<strong>"),
-            Tag::Code => self.data.push_str("<code>"),
+            Tag::Emphasis => self.space_buffer.push_str("<em>"),
+            Tag::Strong => self.space_buffer.push_str("<strong>"),
+            Tag::Code => self.space_buffer.push_str("<code>"),
             Tag::Link(dest, title) => {
-                self.data.push_str("\u{2009}<a href=\"");
-                self.data.push_str(&dest);
+                self.space_buffer.push_str("<a href=\"");
+                self.space_buffer.push_str(&dest);
                 if !title.is_empty() {
-                    self.data.push_str("\" title=\"");
-                    self.data.push_str(&process(title));
+                    self.space_buffer.push_str("\" title=\"");
+                    process(&mut self.space_buffer, title);
                 }
-                self.data.push_str("\" target=\"_blank\">");
+                self.space_buffer.push_str("\" target=\"_blank\">");
             }
             Tag::Image(dest, title) => {
-                self.data.push_str("<img src=\"");
-                self.data.push_str(&dest);
-                self.data.push_str("\" alt=\"");
+                self.space_buffer.push_str("<img src=\"");
+                self.space_buffer.push_str(&dest);
+                self.space_buffer.push_str("\" alt=\"");
                 self.parse_text();
                 if !title.is_empty() {
-                    self.data.push_str("\" title=\"");
-                    self.data.push_str(&process(title));
+                    self.space_buffer.push_str("\" title=\"");
+                    process(&mut self.space_buffer, title);
                 }
-                self.data.push_str("\" />")
+                self.space_buffer.push_str("\" />")
             }
             Tag::FootnoteDefinition(name) => {
-                self.fresh_line();
+                self.fresh_buffer();
                 let len = self.reference.len() + 1;
-                self.data.push_str("<aside id=\"");
-                self.data.push_str(&process(&name));
-                self.data.push_str("\"><sup>");
                 let number = self.reference.entry(name).or_insert(len);
-                write!(&mut self.data, "{}", number).unwrap();
-                self.data.push_str("</sup>");
+                write!(self.data, "<aside id=\"{}\"><sup>{}</sup>", number, number).unwrap();
+                self.space_state = Scripts::Unknown;
             }
         }
     }
 
     fn end_tag(&mut self, tag: Tag) {
+        self.fresh_buffer();
         match tag {
             Tag::Paragraph => self.data.push_str("</p>\n"),
             Tag::Rule => (),
@@ -295,7 +348,7 @@ impl<'a> Blog<'a> {
             Tag::Emphasis => self.data.push_str("</em>"),
             Tag::Strong => self.data.push_str("</strong>"),
             Tag::Code => self.data.push_str("</code>"),
-            Tag::Link(_, _) => self.data.push_str("</a>\u{2009}"),
+            Tag::Link(_, _) => self.data.push_str("</a>"),
             Tag::Image(_, _) => (),
             Tag::FootnoteDefinition(_) => self.data.push_str("</aside>\n"),
         }

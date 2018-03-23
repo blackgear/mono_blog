@@ -1,3 +1,21 @@
+//! Yet another static site generator for who cares hyphenation in Western words
+//! and space between CJK and Western parts.
+//!
+//! mblog insert U+2009 between Chinese and Western parts, crossing inline tags.
+//! also insert U+00AD in the appropriate place inside Western words, according
+//! to Liang's Hyphenation algorithm and LaTeX's corpus.
+//!
+//! # How to use mblog
+//!
+//! ```
+//! $ cat ulysses.md | mblog
+//! ```
+//!
+//! or
+//!
+//! ```
+//! $ mblog ulysses.md
+//! ```
 #![recursion_limit = "128"]
 #[macro_use]
 extern crate fomat_macros;

@@ -1,5 +1,28 @@
+//! Marker to measure the time cost within scope.
+//!
+//! MeasureTimer prints tag and elapsed time when dropped.
+//!
+//! # Example
+//!
+//! ```
+//! {
+//!     use marker::MeasureTimer;
+//!
+//!     #[allow(unused_variables)]
+//!     let time = MeasureTimer::new("Parser");
+//! }
+//! ```
+//!
+//! or
+//!
+//! ```
+//! {
+//!     timer!("Parser");
+//! }
+//! ```
 use std::time::Instant;
 
+/// Print tag and elapsed when dropped.
 pub struct MeasureTimer<'a> {
     tag: &'a str,
     timer: Instant,
@@ -23,6 +46,15 @@ impl<'a> Drop for MeasureTimer<'a> {
     }
 }
 
+/// Warper for easily use MeasureTimer
+///
+/// # Example
+///
+/// ```
+/// {
+///     timer!("Parser");
+/// }
+/// ```
 macro_rules! timer {($e:expr) => {
     #[allow(unused_variables)]
     let time = ::marker::MeasureTimer::new($e);
