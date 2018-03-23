@@ -1,3 +1,14 @@
+//! Render for Vec<Blog> collected by Parser as website
+//!
+//! Generate post, category index, main index and assets pages.
+//!
+//! # Example
+//!
+//! ```
+//! use render::Site;
+//!
+//! Site::new(blog).render();
+//! ```
 use std::cmp::Ordering;
 use std::path::PathBuf;
 use std::fs::{self, File};

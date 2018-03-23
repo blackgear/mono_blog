@@ -5,16 +5,44 @@
 //! also insert U+00AD in the appropriate place inside Western words, according
 //! to Liang's Hyphenation algorithm and LaTeX's corpus.
 //!
-//! # How to use mblog
+//! # Usage
+//!
+//! Process file in arg, or data from stdin
 //!
 //! ```
-//! $ cat ulysses.md | mblog
+//! $ mblog ulysses.md
 //! ```
 //!
 //! or
 //!
 //! ```
-//! $ mblog ulysses.md
+//! $ cat ulysses.md | mblog
+//! ```
+//!
+//! # Format
+//!
+//! Front matter and body are just plain markdown. Posts are joined with newline,
+//! which is the default format exported from [Ulysses](https://ulyssesapp.com).
+//!
+//! ```plain
+//! # 文章标题1
+//!
+//!     本文发表于：2018-01-01T12:45:00+08:00
+//!     最后修改于：2018-01-12T06:15:00+08:00
+//!     分类：category
+//!     地址：url-slug-a
+//!
+//! ...
+//!
+//! # 文章标题2
+//!
+//!     本文发表于：2017-10-24T18:00:00+08:00
+//!     最后修改于：2017-10-30T21:30:00+08:00
+//!     分类：category
+//!     地址：url-slug-b
+//!
+//! ...
+//!
 //! ```
 #![recursion_limit = "128"]
 #[macro_use]
@@ -34,6 +62,7 @@ mod render;
 use parser::Blog;
 use render::Site;
 
+/// Process file in arg, or data from stdin
 fn main() {
     timer!("total");
     let mut data = String::new();

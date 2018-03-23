@@ -6,17 +6,6 @@
 //!
 //! ```
 //! {
-//!     use marker::MeasureTimer;
-//!
-//!     #[allow(unused_variables)]
-//!     let time = MeasureTimer::new("Parser");
-//! }
-//! ```
-//!
-//! or
-//!
-//! ```
-//! {
 //!     timer!("Parser");
 //! }
 //! ```
