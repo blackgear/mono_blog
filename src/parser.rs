@@ -12,9 +12,9 @@
 //!     println("{}", post.title);
 //! }
 //! ```
-use std::fmt::Write;
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fmt::{Arguments, Write};
 use pulldown_cmark::{Alignment, Event, Parser, Tag};
 use linter::{process, Scripts};
 
@@ -99,7 +99,6 @@ impl<'a> Blog<'a> {
                 Event::Start(Tag::CodeBlock(_)) => header = false,
                 Event::Text(ref text) if header => {
                     process(&mut self.title, text);
-                    // self.title.push_str(&process(text));
                 }
                 Event::Text(ref text) if text.starts_with("本文发表于：") => {
                     self.released
@@ -135,15 +134,8 @@ impl<'a> Blog<'a> {
                 Event::SoftBreak => self.fresh_line(),
                 Event::HardBreak => self.push_html("<br />\n"),
                 Event::FootnoteReference(name) => {
-                    self.fresh_buffer();
-                    let len = self.reference.len() + 1;
-                    let number = self.reference.entry(name).or_insert(len);
-                    write!(
-                        self.data,
-                        "<sup><a href=\"#{}\">{}</a></sup>",
-                        number, number
-                    ).unwrap();
-                    self.space_state = Scripts::Unknown;
+                    let id = self.poll_note(name);
+                    self.push_note(format_args!("<sup><a href=\"#{0}\">{0}</a></sup>", id));
                 }
             }
         }
@@ -161,11 +153,8 @@ impl<'a> Blog<'a> {
                 Event::Html(_) | Event::InlineHtml(_) => (),
                 Event::SoftBreak | Event::HardBreak => self.push_html(" "),
                 Event::FootnoteReference(name) => {
-                    self.fresh_buffer();
-                    let len = self.reference.len() + 1;
-                    let number = self.reference.entry(name).or_insert(len);
-                    write!(self.data, "[{}]", number).unwrap();
-                    self.space_state = Scripts::Unknown;
+                    let id = self.poll_note(name);
+                    self.push_note(format_args!("[{0}]", id));
                 }
             }
         }
@@ -205,6 +194,17 @@ impl<'a> Blog<'a> {
         self.fresh_buffer();
         process(&mut self.data, text);
         self.space_state = text.chars().last().map_or(Scripts::Unknown, |x| x.into());
+    }
+
+    fn push_note(&mut self, args: Arguments) {
+        self.fresh_buffer();
+        self.data.write_fmt(args).unwrap();
+        self.space_state = Scripts::Unknown;
+    }
+
+    fn poll_note(&mut self, name: Cow<'a, str>) -> usize {
+        let id = self.reference.len() + 1;
+        *self.reference.entry(name).or_insert(id)
     }
 
     fn start_tag(&mut self, tag: Tag<'a>) {
@@ -304,11 +304,8 @@ impl<'a> Blog<'a> {
                 self.space_buffer.push_str("\" />")
             }
             Tag::FootnoteDefinition(name) => {
-                self.fresh_buffer();
-                let len = self.reference.len() + 1;
-                let number = self.reference.entry(name).or_insert(len);
-                write!(self.data, "<aside id=\"{}\"><sup>{}</sup>", number, number).unwrap();
-                self.space_state = Scripts::Unknown;
+                let id = self.poll_note(name);
+                self.push_note(format_args!("<aside id=\"{0}\"><sup>{0}</sup>", id));
             }
         }
     }
