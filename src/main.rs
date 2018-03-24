@@ -1,9 +1,9 @@
-//! Yet another static site generator for who cares hyphenation in Western words
-//! and space between CJK and Western parts.
+//! Yet another static site generator for who cares hyphenation in Western words and space between
+//! CJK and Western parts.
 //!
-//! mblog insert U+2009 between Chinese and Western parts, crossing inline tags.
-//! also insert U+00AD in the appropriate place inside Western words, according
-//! to Liang's Hyphenation algorithm and LaTeX's corpus.
+//! mblog insert U+2009 between Chinese and Western parts across inline tags, insert U+00AD in the
+//! appropriate place inside Western words according to Liang's Hyphenation algorithm and LaTeX's
+//! corpus.
 //!
 //! # Usage
 //!
@@ -21,8 +21,8 @@
 //!
 //! # Format
 //!
-//! Front matter and body are just plain markdown. Posts are joined with newline,
-//! which is the default format exported from [Ulysses](https://ulyssesapp.com).
+//! Front matter and body are just plain markdown. Posts are joined with newline, which is the
+//! default format exported from [Ulysses](https://ulyssesapp.com).
 //!
 //! ```plain
 //! # 文章标题1

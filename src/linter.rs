@@ -1,11 +1,10 @@
 //! Linter for Chinese-English mixed content.
 //!
-//! Hyphenate, space and HTML-escape the content within O(n) time complexity,
-//! O(n) space complexity.
+//! Hyphenate, space and HTML-escape the content within O(n) time complexity, O(n) space complexity.
 //!
-//! This implementation of [Liang's hyphenation algorithm](https://tug.org/docs/liang/)
-//! is optimized by a Double Array Trie based Aho–Corasick algorithm. 3x faster
-//! than [hyphenation = "0.6.1"](https://crates.io/crates/hyphenation).
+//! This implementation of [Liang's hyphenation algorithm](https://tug.org/docs/liang/) is optimized
+//! by a Double Array Trie based Aho–Corasick algorithm. 3x faster than
+//! [hyphenation = "0.6.1"](https://crates.io/crates/hyphenation).
 //!
 //! # Liang's hyphenation algorithm
 //!
@@ -30,13 +29,12 @@
 //!             ↓       ↓
 //!          H y-p h e n-a t i o n
 //! ```
-//! Points represents hyphenation occasion in words, which is build by merge
-//! all points from matched pattern. Larger Pattern point will cover/shadowing
-//! small point. Odd point allows hyphen at this occasion, while even point
-//! disallows.
+//! Points represents hyphenation occasion in words, which is build by merge all points from matched
+//! pattern. Larger Pattern point will cover/shadowing small point. Odd point allows hyphen at this
+//! occasion, while even point disallows.
 //!
-//! This implementation stores Patterns in Double Array Trie based Aho–Corasick
-//! automaton, specially optimised for data size and code speed.
+//! This implementation stores Patterns in Double Array Trie based Aho–Corasick automaton, specially
+//! optimised for data size and code speed.
 //!
 //! # Spacing algorithm
 //!
@@ -65,8 +63,8 @@ static DFA: [u16; 33840] = include!("EN_dfa.in");
 /// Pattern Points compressed by Shortest Common Supersequence
 static RAW: [u8; 1964] = include!("EN_raw.in");
 
-/// Convert a &str to Points. This function uses black magic codes to reduce
-/// cache miss(D1mr=0.44 DLmr=0.16) and improve speed.
+/// Convert a &str to Points. This function uses black magic codes to reduce cache miss(D1mr=0.44
+/// DLmr=0.16) and improve speed.
 /// DO NOT CHANGE WITHOUT BENCHMARK
 fn detect(content: &str) -> Vec<u8> {
     let mut result: Vec<u8> = vec![0; content.len() + 1];
