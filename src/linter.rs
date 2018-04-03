@@ -81,7 +81,7 @@ fn detect(content: &str) -> Vec<u8> {
         .enumerate();
     for (idx, chr) in content {
         loop {
-            let offset: usize = DFA[cursor + 0] as usize + chr;
+            let offset: usize = DFA[cursor] as usize + chr;
             if offset < 33840 && (DFA[offset + 1] as usize) == cursor {
                 cursor = offset;
                 break;
@@ -126,7 +126,7 @@ fn detect(content: &str) -> Vec<u8> {
 /// let mut result = String::new()
 /// hyphen("中文", &mut result);
 /// ```
-pub fn hyphen<'a>(content: &'a str, result: &mut String) {
+pub fn hyphen<'a>(result: &mut String, content: &'a str) {
     let length = content.len();
     if length < 5 {
         return result.push_str(content);
@@ -224,19 +224,18 @@ impl From<char> for Scripts {
 ///
 /// assert_eq!("&gt;这是\u{2009}Hy\u{00AD}phen\u{00AD}ation\u{2009}的文字", result);
 /// ```
-pub fn process<'a, S: AsRef<str>>(result: &mut String, content: S) {
+pub fn process<S: AsRef<str>>(result: &mut String, content: S) {
     let mut ws = Scripts::Unknown;
-    let mut chars = content.as_ref().chars();
     let mut buffer = String::with_capacity(20);
 
-    while let Some(ch) = chars.next() {
+    for ch in content.as_ref().chars() {
         let ns = ch.into();
         if ws != ns {
             if ws == Scripts::Chinese && ns != Scripts::Unknown {
                 result.push('\u{2009}');
             }
             if ws == Scripts::English {
-                hyphen(&buffer, result);
+                hyphen(result, &buffer);
                 buffer.clear();
             }
             if ns == Scripts::Chinese && ws != Scripts::Unknown {
@@ -257,5 +256,5 @@ pub fn process<'a, S: AsRef<str>>(result: &mut String, content: S) {
         }
         ws = ns;
     }
-    hyphen(&buffer, result);
+    hyphen(result, &buffer);
 }

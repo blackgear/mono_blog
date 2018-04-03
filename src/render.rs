@@ -54,7 +54,7 @@ impl Site {
 
     pub fn render(&self) {
         timer!("Render");
-        if self.blog.len() == 0 {
+        if self.blog.is_empty() {
             return;
         };
         scope(|s| {
@@ -289,7 +289,7 @@ impl Site {
                 "<priority>1.0</priority>\n"
                 "</url>\n"
             }
-            for post in self.blog.iter() {
+            for post in &self.blog {
                 "<url>\n"
                 if !post.category.is_empty() {
                     "<loc>https://darknode.in/"(post.category)"/"(post.pagename)"/</loc>\n"
@@ -312,10 +312,10 @@ impl Site {
     fn render_misc(&self) {
         let path = [DESTROOT, "mono.css"].iter().collect();
         let mut w = create(path);
-        w.write(include_bytes!("mono.css")).unwrap();
+        w.write_all(include_bytes!("mono.css")).unwrap();
 
         let path = [DESTROOT, "favicon.png"].iter().collect();
         let mut w = create(path);
-        w.write(include_bytes!("favicon.png")).unwrap();
+        w.write_all(include_bytes!("favicon.png")).unwrap();
     }
 }

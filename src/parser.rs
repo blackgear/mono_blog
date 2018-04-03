@@ -15,7 +15,7 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{Arguments, Write};
-use pulldown_cmark::{Alignment, Event, Parser, Tag};
+use pulldown_cmark::{Alignment, Event, Parser, Tag, OPTION_ENABLE_TABLES};
 use linter::{process, Scripts};
 
 #[derive(Eq, PartialEq)]
@@ -54,7 +54,7 @@ pub struct Blog<'a> {
 
 impl<'a> Blog<'a> {
     pub fn from(content: &'a str) -> Blog<'a> {
-        let mut iter = Parser::new(content);
+        let mut iter = Parser::new_ext(content, OPTION_ENABLE_TABLES);
 
         while let Some(event) = iter.next() {
             if event == Event::Start(Tag::Header(1)) {
@@ -63,7 +63,7 @@ impl<'a> Blog<'a> {
         }
 
         Blog {
-            iter: iter,
+            iter,
             size: content.len(),
 
             title: String::with_capacity(64),
@@ -102,19 +102,19 @@ impl<'a> Blog<'a> {
                 }
                 Event::Text(ref text) if text.starts_with("本文发表于：") => {
                     self.released
-                        .push_str(&text["本文发表于：".len()..].trim_right());
+                        .push_str(text["本文发表于：".len()..].trim_right());
                 }
                 Event::Text(ref text) if text.starts_with("最后修改于：") => {
                     self.modified
-                        .push_str(&text["最后修改于：".len()..].trim_right());
+                        .push_str(text["最后修改于：".len()..].trim_right());
                 }
                 Event::Text(ref text) if text.starts_with("分类：") => {
                     self.category
-                        .push_str(&text["分类：".len()..].trim_right());
+                        .push_str(text["分类：".len()..].trim_right());
                 }
                 Event::Text(ref text) if text.starts_with("地址：") => {
                     self.pagename
-                        .push_str(&text["地址：".len()..].trim_right());
+                        .push_str(text["地址：".len()..].trim_right());
                 }
                 Event::End(Tag::CodeBlock(_)) => break,
                 _ => (),
