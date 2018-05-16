@@ -44,7 +44,9 @@ impl<'a> Drop for MeasureTimer<'a> {
 ///     timer!("Parser");
 /// }
 /// ```
-macro_rules! timer {($e:expr) => {
-    #[allow(unused_variables)]
-    let time = ::marker::MeasureTimer::new($e);
-}}
+macro_rules! timer {
+    ($e:expr) => {
+        #[allow(unused_variables)]
+        let time = ::marker::MeasureTimer::new($e);
+    };
+}

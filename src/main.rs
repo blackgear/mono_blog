@@ -49,9 +49,9 @@
 extern crate fomat_macros;
 extern crate pulldown_cmark;
 extern crate rayon;
-use std::io::{stdin, Read};
-use std::fs::File;
 use std::env;
+use std::fs::File;
+use std::io::{stdin, Read};
 
 #[macro_use]
 mod marker;

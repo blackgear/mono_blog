@@ -12,11 +12,11 @@
 //!     println("{}", post.title);
 //! }
 //! ```
+use linter::{process, Scripts};
+use pulldown_cmark::{Alignment, Event, Parser, Tag, OPTION_ENABLE_TABLES};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{Arguments, Write};
-use pulldown_cmark::{Alignment, Event, Parser, Tag, OPTION_ENABLE_TABLES};
-use linter::{process, Scripts};
 
 #[derive(Eq, PartialEq)]
 pub struct Post {
@@ -135,7 +135,10 @@ impl<'a> Blog<'a> {
                 Event::HardBreak => self.push_html("<br />\n"),
                 Event::FootnoteReference(name) => {
                     let id = self.poll_note(name);
-                    self.push_note(format_args!("<sup><a href=\"#{0}\">{0}</a></sup>", id));
+                    self.push_note(format_args!(
+                        "\u{2060}<sup><a href=\"#{0}\">{0}</a></sup>",
+                        id
+                    ));
                 }
             }
         }

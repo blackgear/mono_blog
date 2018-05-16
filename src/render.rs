@@ -9,14 +9,14 @@
 //!
 //! Site::new(blog).render();
 //! ```
-use std::cmp::Ordering;
-use std::path::PathBuf;
-use std::fs::{self, File};
-use std::io::{BufWriter, Write};
-use std::collections::{BinaryHeap, HashSet};
+use parser::{Blog, Post};
 use rayon::prelude::*;
 use rayon::scope;
-use parser::{Blog, Post};
+use std::cmp::Ordering;
+use std::collections::{BinaryHeap, HashSet};
+use std::fs::{self, File};
+use std::io::{BufWriter, Write};
+use std::path::PathBuf;
 
 const PAGESIZE: usize = 7;
 const DESTROOT: &str = "public";
