@@ -54,7 +54,7 @@ use std::fs::File;
 use std::io::{stdin, Read};
 
 #[macro_use]
-mod marker;
+mod macros;
 mod linter;
 mod parser;
 mod render;

@@ -35,7 +35,7 @@ impl<'a> Drop for MeasureTimer<'a> {
     }
 }
 
-/// Warper for easily use MeasureTimer
+/// Warper for ergonomic time measuring
 ///
 /// # Example
 ///
@@ -46,7 +46,23 @@ impl<'a> Drop for MeasureTimer<'a> {
 /// ```
 macro_rules! timer {
     ($e:expr) => {
-        #[allow(unused_variables)]
-        let time = ::marker::MeasureTimer::new($e);
+        let _timer = ::macros::MeasureTimer::new($e);
+    };
+}
+
+/// Warper for ergonomic performance optimization
+///
+/// # Example
+///
+/// ```
+/// {
+///     unreachable!();
+/// }
+/// ```
+macro_rules! unreachable {
+    () => {
+        unsafe {
+            ::std::hint::unreachable_unchecked();
+        };
     };
 }
