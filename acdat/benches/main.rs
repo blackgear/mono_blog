@@ -1,10 +1,10 @@
 #![feature(test)]
 extern crate rand;
 extern crate test;
-use test::Bencher;
 use rand::{Rng, XorShiftRng};
 use std::fs::File;
 use std::io::Read;
+use test::Bencher;
 
 mod linter;
 use linter::hyphen;
@@ -25,12 +25,14 @@ fn prepare(length: usize) -> Vec<String> {
 }
 
 macro_rules! bench {
-    ($a:ident, $b:ident, $length:expr) => (
+    ($a:ident, $b:ident, $length:expr) => {
         #[bench]
         fn $a(b: &mut Bencher) {
             let data = prepare($length);
-            b.iter(|| for word in data.clone() {
-                hyphen(&word);
+            b.iter(|| {
+                for word in data.clone() {
+                    hyphen(&word);
+                }
             });
         }
 
@@ -39,11 +41,13 @@ macro_rules! bench {
             let english_us = hyphenation::load(English_US).unwrap();
             let data = prepare($length);
 
-            b.iter(|| for word in data.clone() {
-                let _s: String = word.hyphenate(&english_us).punctuate().collect();
+            b.iter(|| {
+                for word in data.clone() {
+                    let _s: String = word.hyphenate(&english_us).punctuate().collect();
+                }
             });
         }
-    )
+    };
 }
 
 bench!(bench05_acdat, bench05_crate, 5);

@@ -5,11 +5,11 @@ extern crate fnv;
 extern crate nom;
 extern crate rand;
 extern crate rayon;
-use std::fs::File;
+use fnv::FnvHashSet;
 use nom::line_ending;
+use std::fs::File;
 use std::io::{Read, Write};
 use std::mem;
-use fnv::FnvHashSet;
 
 mod scs;
 mod trie;

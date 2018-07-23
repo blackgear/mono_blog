@@ -306,7 +306,7 @@ impl Site {
                 "</url>\n"
             }
             "</urlset>\n"
-            ).unwrap();
+        ).unwrap();
     }
 
     fn render_misc(&self) {

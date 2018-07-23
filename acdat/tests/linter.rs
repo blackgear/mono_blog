@@ -10,18 +10,16 @@ pub fn detect(content: &str) -> Vec<u8> {
     let content = content
         .as_bytes()
         .iter()
-        .map(|&x| {
-            match x {
-                0x41...0x5A => (x as usize + 32) << 2,
-                0x61...0x7A => (x as usize) << 2,
-                _ => unreachable!()
-            }
+        .map(|&x| match x {
+            0x41...0x5A => (x as usize + 32) << 2,
+            0x61...0x7A => (x as usize) << 2,
+            _ => unreachable!(),
         })
         .chain([184].iter().cloned())
         .enumerate();
     for (idx, chr) in content {
         loop {
-            let offset: usize = DFA[cursor + 0] as usize + chr;
+            let offset: usize = DFA[cursor] as usize + chr;
             if offset < 33840 && (DFA[offset + 1] as usize) == cursor {
                 cursor = offset;
                 break;
@@ -30,7 +28,7 @@ pub fn detect(content: &str) -> Vec<u8> {
         }
         if DFA[cursor + 3] != 0 {
             let data_idx: usize = (DFA[cursor + 3] as usize) >> 4;
-            let data_len: usize = (DFA[cursor + 3] as usize) % (1 << 4);
+            let data_len: usize = (DFA[cursor + 3] as usize) & 0b1111;
             for i in 0..data_len {
                 let p = RAW[data_idx + i];
                 if p != 0 {

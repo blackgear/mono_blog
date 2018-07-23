@@ -1,6 +1,6 @@
+use fnv::FnvHashSet;
 use rayon::prelude::*;
 use std::fmt::Debug;
-use fnv::FnvHashSet;
 
 fn overlap<T: PartialEq + Clone>(a: &Vec<T>, b: &Vec<T>) -> usize {
     let mut i = 0;

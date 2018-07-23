@@ -1,6 +1,6 @@
 use fnv::{FnvHashMap, FnvHashSet};
-use std::fmt;
 use std::cmp::max;
+use std::fmt;
 
 #[derive(Debug)]
 pub struct Trie {

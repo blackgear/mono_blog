@@ -90,7 +90,7 @@ fn detect(content: &str) -> Vec<u8> {
         }
         if DFA[cursor + 3] != 0 {
             let data_idx: usize = (DFA[cursor + 3] as usize) >> 4;
-            let data_len: usize = (DFA[cursor + 3] as usize) % (1 << 4);
+            let data_len: usize = (DFA[cursor + 3] as usize) & 0b1111;
             for i in 0..data_len {
                 let p = RAW[data_idx + i];
                 if p != 0 {
