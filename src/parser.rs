@@ -12,7 +12,7 @@
 //!     println("{}", post.title);
 //! }
 //! ```
-use linter::{process, Scripts};
+use linter::{Linter, Scripts};
 use pulldown_cmark::{Alignment, Event, Parser, Tag, OPTION_ENABLE_TABLES};
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -77,7 +77,7 @@ impl<'a> Blog<'a> {
             space_state: Scripts::Unknown,
             space_buffer: String::with_capacity(64),
             table_state: TableState::Head,
-            table_alignments: vec![],
+            table_alignments: Vec::with_capacity(8),
             table_cell_index: 0,
         }
     }
@@ -90,6 +90,11 @@ impl<'a> Blog<'a> {
         self.pagename.clear();
         self.data.clear();
         self.reference.clear();
+        self.space_state = Scripts::Unknown;
+        self.space_buffer.clear();
+        self.table_state = TableState::Head;
+        self.table_alignments.clear();
+        self.table_cell_index = 0;
     }
 
     fn parse_meta(&mut self) {
@@ -98,23 +103,19 @@ impl<'a> Blog<'a> {
             match event {
                 Event::Start(Tag::CodeBlock(_)) => header = false,
                 Event::Text(ref text) if header => {
-                    process(&mut self.title, text);
+                    self.title.push_txt(text);
                 }
                 Event::Text(ref text) if text.starts_with("本文发表于：") => {
-                    self.released
-                        .push_str(text["本文发表于：".len()..].trim_right());
+                    self.released.push_str(text[18..].trim_right());
                 }
                 Event::Text(ref text) if text.starts_with("最后修改于：") => {
-                    self.modified
-                        .push_str(text["最后修改于：".len()..].trim_right());
+                    self.modified.push_str(text[18..].trim_right());
                 }
                 Event::Text(ref text) if text.starts_with("分类：") => {
-                    self.category
-                        .push_str(text["分类：".len()..].trim_right());
+                    self.category.push_str(text[9..].trim_right());
                 }
-                Event::Text(ref text) if text.starts_with("地址：") => {
-                    self.pagename
-                        .push_str(text["地址：".len()..].trim_right());
+                Event::Text(ref text) if text.starts_with("页名：") => {
+                    self.pagename.push_str(text[9..].trim_right());
                 }
                 Event::End(Tag::CodeBlock(_)) => break,
                 _ => (),
@@ -195,7 +196,7 @@ impl<'a> Blog<'a> {
         };
 
         self.fresh_buffer();
-        process(&mut self.data, text);
+        self.data.push_txt(text);
         self.space_state = text.chars().last().map_or(Scripts::Unknown, |x| x.into());
     }
 
@@ -262,8 +263,8 @@ impl<'a> Blog<'a> {
                 if lang.is_empty() {
                     self.data.push_str("<pre><code>");
                 } else {
-                    self.data.push_str("<pre><code class=\"language-");
-                    process(&mut self.data, lang);
+                    self.data.push_str("<pre><code lang=\"");
+                    self.data.push_str(lang);
                     self.data.push_str("\">");
                 }
             }
@@ -291,7 +292,7 @@ impl<'a> Blog<'a> {
                 self.space_buffer.push_str(&dest);
                 if !title.is_empty() {
                     self.space_buffer.push_str("\" title=\"");
-                    process(&mut self.space_buffer, title);
+                    self.space_buffer.push_txt(title);
                 }
                 self.space_buffer.push_str("\" target=\"_blank\">");
             }
@@ -302,7 +303,7 @@ impl<'a> Blog<'a> {
                 self.parse_text();
                 if !title.is_empty() {
                     self.space_buffer.push_str("\" title=\"");
-                    process(&mut self.space_buffer, title);
+                    self.space_buffer.push_txt(title);
                 }
                 self.space_buffer.push_str("\" />")
             }

@@ -126,7 +126,7 @@ fn detect(content: &str) -> Vec<u8> {
 /// let mut result = String::new()
 /// hyphen("中文", &mut result);
 /// ```
-pub fn hyphen<'a>(result: &mut String, content: &'a str) {
+fn hyphen<'a>(result: &mut String, content: &'a str) {
     let length = content.len();
     if length < 5 {
         return result.push_str(content);
@@ -218,43 +218,50 @@ impl From<char> for Scripts {
 /// # Examples
 ///
 /// ```rust
-/// use linter::process;
+/// use linter::Lintable;
 ///
-/// let result = process(">这是Hyphenation的文字");
+/// let mut result = String::new();
+/// result.push_txt(">这是Hyphenation的文字");
 ///
 /// assert_eq!("&gt;这是\u{2009}Hy\u{00AD}phen\u{00AD}ation\u{2009}的文字", result);
 /// ```
-pub fn process<S: AsRef<str>>(result: &mut String, content: S) {
-    let mut ws = Scripts::Unknown;
-    let mut buffer = String::with_capacity(20);
+pub trait Linter {
+    fn push_txt<S: AsRef<str>>(&mut self, text: S);
+}
 
-    for ch in content.as_ref().chars() {
-        let ns = ch.into();
-        if ws != ns {
-            if ws == Scripts::Chinese && ns != Scripts::Unknown {
-                result.push('\u{2009}');
+impl Linter for String {
+    fn push_txt<S: AsRef<str>>(&mut self, text: S) {
+        let mut ws = Scripts::Unknown;
+        let mut buffer = String::with_capacity(20);
+
+        for ch in text.as_ref().chars() {
+            let ns = ch.into();
+            if ws != ns {
+                if ws == Scripts::Chinese && ns != Scripts::Unknown {
+                    self.push('\u{2009}');
+                }
+                if ws == Scripts::English {
+                    hyphen(self, &buffer);
+                    buffer.clear();
+                }
+                if ns == Scripts::Chinese && ws != Scripts::Unknown {
+                    self.push('\u{2009}');
+                }
             }
-            if ws == Scripts::English {
-                hyphen(result, &buffer);
-                buffer.clear();
+            if ns == Scripts::English {
+                buffer.push(ch);
+            } else {
+                match ch {
+                    '\u{0022}' => self.push_str("&#34;"),
+                    '\u{0026}' => self.push_str("&#38;"),
+                    '\u{0027}' => self.push_str("&#39;"),
+                    '\u{003C}' => self.push_str("&lt;"),
+                    '\u{003E}' => self.push_str("&gt;"),
+                    _ => self.push(ch),
+                }
             }
-            if ns == Scripts::Chinese && ws != Scripts::Unknown {
-                result.push('\u{2009}');
-            }
+            ws = ns;
         }
-        if ns == Scripts::English {
-            buffer.push(ch);
-        } else {
-            match ch {
-                '\u{0022}' => result.push_str("&#34;"),
-                '\u{0026}' => result.push_str("&#38;"),
-                '\u{0027}' => result.push_str("&#39;"),
-                '\u{003C}' => result.push_str("&lt;"),
-                '\u{003E}' => result.push_str("&gt;"),
-                _ => result.push(ch),
-            }
-        }
-        ws = ns;
+        hyphen(self, &buffer);
     }
-    hyphen(result, &buffer);
 }

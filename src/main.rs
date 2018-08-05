@@ -49,9 +49,13 @@
 extern crate fomat_macros;
 extern crate pulldown_cmark;
 extern crate rayon;
+use std::alloc::System;
 use std::env;
 use std::fs::File;
 use std::io::{stdin, Read};
+
+#[global_allocator]
+static GLOBAL: System = System;
 
 #[macro_use]
 mod macros;

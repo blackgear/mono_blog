@@ -111,7 +111,8 @@ impl Site {
     }
 
     fn render_menu(&self) {
-        let categories: HashSet<&str> = self.blog
+        let categories: HashSet<&str> = self
+            .blog
             .iter()
             .filter(|x| !x.category.is_empty())
             .map(|x| x.category.as_ref())
@@ -158,7 +159,8 @@ impl Site {
     }
 
     fn render_main(&self) {
-        let size = self.blog
+        let size = self
+            .blog
             .iter()
             .filter(|post| !post.category.is_empty())
             .count();
