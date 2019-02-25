@@ -13,7 +13,7 @@
 //! }
 //! ```
 use linter::{Linter, Scripts};
-use pulldown_cmark::{Alignment, Event, Parser, Tag, OPTION_ENABLE_TABLES};
+use pulldown_cmark::{Alignment, Event, Options, Parser, Tag};
 use std::borrow::Cow;
 use std::collections::HashMap;
 use std::fmt::{Arguments, Write};
@@ -54,7 +54,7 @@ pub struct Blog<'a> {
 
 impl<'a> Blog<'a> {
     pub fn from(content: &'a str) -> Blog<'a> {
-        let mut iter = Parser::new_ext(content, OPTION_ENABLE_TABLES);
+        let mut iter = Parser::new_ext(content, Options::ENABLE_TABLES);
 
         while let Some(event) = iter.next() {
             if event == Event::Start(Tag::Header(1)) {
@@ -106,16 +106,16 @@ impl<'a> Blog<'a> {
                     self.title.push_txt(text);
                 }
                 Event::Text(ref text) if text.starts_with("本文发表于：") => {
-                    self.released.push_str(text[18..].trim_right());
+                    self.released.push_str(text[18..].trim_end());
                 }
                 Event::Text(ref text) if text.starts_with("最后修改于：") => {
-                    self.modified.push_str(text[18..].trim_right());
+                    self.modified.push_str(text[18..].trim_end());
                 }
                 Event::Text(ref text) if text.starts_with("分类：") => {
-                    self.category.push_str(text[9..].trim_right());
+                    self.category.push_str(text[9..].trim_end());
                 }
                 Event::Text(ref text) if text.starts_with("页名：") => {
-                    self.pagename.push_str(text[9..].trim_right());
+                    self.pagename.push_str(text[9..].trim_end());
                 }
                 Event::End(Tag::CodeBlock(_)) => break,
                 _ => (),

@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Daniel <daniel65536@gmail.com>"]
 
 [dependencies]
-pulldown-cmark = { version = "0.1", default-features = false }
-fomat-macros = "0.2"
+pulldown-cmark = { version = "0.2", default-features = false }
+fomat-macros = "0.3"
 rayon = "1.0"
 
 [profile.release]
